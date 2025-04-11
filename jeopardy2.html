@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Jeopardy - Google Sheets Edition</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style type="text/tailwindcss">
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060ce9; /* Classic Jeopardy blue */
+        }
+        .jeopardy-cell {
+            @apply bg-blue-800 text-yellow-400 font-bold text-2xl h-24 flex items-center justify-center cursor-pointer border border-black transition duration-200 ease-in-out hover:bg-blue-700;
+        }
+        .jeopardy-category {
+            @apply bg-blue-900 text-white font-bold text-sm h-16 flex items-center justify-center text-center border border-black p-2;
+        }
+        .jeopardy-cell.answered {
+            @apply bg-gray-600 text-gray-400 cursor-not-allowed pointer-events-none;
+        }
+        .modal-content {
+            @apply bg-blue-800 text-white p-8 rounded-lg shadow-xl max-w-lg w-full;
+        }
+        #status-area {
+            @apply text-center text-yellow-300 mb-4 text-lg;
+        }
+        #url-input-section {
+            @apply bg-blue-900 p-6 rounded-lg shadow-lg mb-6 w-full max-w-2xl text-white;
+        }
+        .url-input-label {
+            @apply block text-yellow-400 text-sm font-bold mb-2;
+        }
+        .url-input {
+            @apply shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-4; /* Added bg-white */
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <h1 class="text-4xl font-bold text-white mb-6">Web Jeopardy</h1>
+
+    <!-- URL Input Section -->
+    <div id="url-input-section"> <!-- Removed hidden class -->
+        <h2 class="text-2xl font-bold text-center mb-4">Load Game Data</h2>
+        <div class="mb-4">
+            <label for="questions-url" class="url-input-label">Questions CSV URL:</label>
+            <input type="url" id="questions-url" class="url-input" placeholder="Paste Google Sheet CSV URL for questions here">
+        </div>
+        <div class="mb-6">
+            <label for="answers-url" class="url-input-label">Answers CSV URL:</label>
+            <input type="url" id="answers-url" class="url-input" placeholder="Paste Google Sheet CSV URL for answers here">
+        </div>
+        <button id="load-data-button" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded w-full transition duration-200 ease-in-out">Load Game Data</button>
+    </div>
+
+    <!-- Status Area -->
+    <div id="status-area" class="hidden mt-4">Loading...</div>
+
+    <!-- Game Board -->
+    <div id="game-board" class="hidden grid grid-cols-6 gap-1 w-full max-w-4xl mx-auto mt-4">
+        <!-- Categories and cells will be generated here by JavaScript -->
+    </div>
+
+    <!-- Question Modal -->
+    <div id="question-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="modal-content relative">
+            <button id="close-modal-button" class="absolute top-2 right-3 text-white text-2xl font-bold">&times;</button>
+            <div id="modal-category" class="text-lg font-bold text-yellow-400 mb-2">Category</div>
+            <div id="modal-points" class="text-sm text-gray-300 mb-4">Points: </div>
+            <div id="modal-question" class="text-2xl mb-6">Question text goes here...</div>
+            <div id="modal-answer-area" class="hidden">
+                <h4 class="text-yellow-400 font-bold mb-2">Answer:</h4>
+                <div id="modal-answer" class="text-xl">Answer text goes here...</div>
+            </div>
+            <button id="show-answer-button" class="mt-4 bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded transition duration-200 ease-in-out">Show Answer</button>
+            <div id="score-area" class="text-white text-2xl font-bold my-4">Score: $<span id="score">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const urlInputSection = document.getElementById('url-input-section');
+        const questionsUrlInput = document.getElementById('questions-url');
+        const answersUrlInput = document.getElementById('answers-url');
+        const loadDataButton = document.getElementById('load-data-button');
+        const statusArea = document.getElementById('status-area');
+        const scoreArea = document.getElementById('score-area');
+        const scoreDisplay = document.getElementById('score');
+        const gameBoard = document.getElementById('game-board');
+        const questionModal = document.getElementById('question-modal');
+        const modalCategory = document.getElementById('modal-category');
+        const modalPoints = document.getElementById('modal-points');
+        const modalQuestion = document.getElementById('modal-question');
+        const modalAnswerArea = document.getElementById('modal-answer-area');
+        const modalAnswer = document.getElementById('modal-answer');
+        const showAnswerButton = document.getElementById('show-answer-button');
+        const closeModalButton = document.getElementById('close-modal-button');
+
+        let categories = [];
+        let questions = {}; // Structure: { "CATEGORY_POINTS": { question: "...", answer: "..." } }
+        let currentScore = 0;
+        let currentAnswer = ''; // Store answer for the currently open modal
+
+        // --- TODO: Add Event Listeners and Game Logic --- 
+
+        // Load data from URLs
+        async function loadData() {
+            const questionsUrl = questionsUrlInput.value;
+            const answersUrl = answersUrlInput.value;
+
+            if (!questionsUrl || !answersUrl) {
+                alert('Please provide both URLs.');
+                return;
+            }
+
+            statusArea.classList.remove('hidden');
+            statusArea.textContent = 'Loading data...';
+
+            try {
+                const questionsResponse = await fetch(questionsUrl);
+                const answersResponse = await fetch(answersUrl);
+
+                const questionsText = await questionsResponse.text();
+                const answersText = await answersResponse.text();
+
+                parseData(questionsText, answersText);
+                buildGameBoard();
+                statusArea.classList.add('hidden');
+                urlInputSection.classList.add('hidden');
+                gameBoard.classList.remove('hidden');
+            } catch (error) {
+                console.error('Error loading data:', error);
+                statusArea.textContent = 'Failed to load data. Please check the URLs and try again.';
+            }
+        }
+
+        // Parse CSV data
+        function parseData(questionsCsv, answersCsv) {
+            const questionsLines = questionsCsv.split('\n');
+            const answersLines = answersCsv.split('\n');
+
+            categories = questionsLines[0].split(',');
+
+            for (let i = 1; i < questionsLines.length; i++) {
+                const questionRow = questionsLines[i].split(',');
+                const answerRow = answersLines[i].split(',');
+
+                for (let j = 0; j < categories.length; j++) {
+                    const key = `${categories[j]}_${i * 100}`;
+                    questions[key] = {
+                        question: questionRow[j],
+                        answer: answerRow[j]
+                    };
+                }
+            }
+        }
+
+        // Build game board
+        function buildGameBoard() {
+            // Add categories
+            categories.forEach(category => {
+                const categoryCell = document.createElement('div');
+                categoryCell.className = 'jeopardy-category';
+                categoryCell.textContent = category;
+                gameBoard.appendChild(categoryCell);
+            });
+
+            // Add question cells
+            for (let i = 1; i <= 5; i++) {
+                categories.forEach(category => {
+                    const points = i * 100;
+                    const key = `${category}_${points}`;
+
+                    const questionCell = document.createElement('div');
+                    questionCell.className = 'jeopardy-cell';
+                    questionCell.textContent = `$${points}`;
+                    questionCell.addEventListener('click', () => openQuestionModal(key, category, points));
+                    gameBoard.appendChild(questionCell);
+                });
+            }
+        }
+
+        // Open question modal
+        function openQuestionModal(key, category, points) {
+            const questionData = questions[key];
+            if (!questionData) return;
+
+            modalCategory.textContent = category;
+            modalPoints.textContent = `Points: $${points}`;
+            modalQuestion.textContent = questionData.question;
+            currentAnswer = questionData.answer;
+
+            questionModal.classList.remove('hidden');
+        }
+
+        // Show answer in modal
+        function showAnswer() {
+            modalAnswerArea.classList.remove('hidden');
+            modalAnswer.textContent = currentAnswer;
+        }
+
+        // Close modal
+        function closeModal() {
+            questionModal.classList.add('hidden');
+            modalAnswerArea.classList.add('hidden');
+        }
+
+        // Event listeners
+        loadDataButton.addEventListener('click', loadData);
+        showAnswerButton.addEventListener('click', showAnswer);
+        closeModalButton.addEventListener('click', closeModal);
+    </script>
+</body>
+</html>
