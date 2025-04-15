@@ -202,7 +202,16 @@
                 const questionsText = await questionsResponse.text();
                 const answersText = await answersResponse.text();
 
-                parseData(questionsText, answersText);
+                // Wrap parseData in its own try...catch or check its return
+                try {
+                    parseData(questionsText, answersText);
+                } catch (parseError) {
+                    console.error('Error parsing CSV data:', parseError);
+                    statusArea.textContent = `Failed to parse game data: ${parseError.message}. Please check CSV format and content.`;
+                    loadDataButton.disabled = false;
+                    return; // Stop execution if parsing fails
+                }
+
                 buildGameBoard();
                 initializeScoreboard(); // Setup the main scoreboard
 
@@ -213,6 +222,7 @@
 
             } catch (error) {
                 console.error('Error loading data:', error);
+                // Keep the generic fetch error handling
                 statusArea.textContent = `Failed to load data. Error: ${error.message}. Please check URLs, CORS, and sheet sharing settings.`;
                 loadDataButton.disabled = false;
             }
@@ -317,13 +327,52 @@
         }
 
         function parseData(questionsCsv, answersCsv) {
-            const parseCsvLine = (line) => line.split(',').map(item => item.trim());
+            // Robust CSV line parser
+            const parseCsvLine = (line) => {
+                const result = [];
+                let currentField = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    const nextChar = line[i + 1];
+
+                    if (!inQuotes) {
+                        if (char === ',') {
+                            result.push(currentField.trim());
+                            currentField = '';
+                        } else if (char === '"' && currentField === '') {
+                            // Start quoted field only if quote is the first char of the field
+                            inQuotes = true;
+                        } else {
+                            currentField += char;
+                        }
+                    } else { // Inside quotes
+                        if (char === '"') {
+                            if (nextChar === '"') {
+                                // Escaped quote
+                                currentField += '"';
+                                i++; // Skip next quote
+                            } else {
+                                // End of quoted field
+                                inQuotes = false;
+                                // We expect a comma or end of line next,
+                                // but don't strictly enforce for robustness
+                            }
+                        } else {
+                            currentField += char;
+                        }
+                    }
+                }
+                result.push(currentField.trim()); // Add the last field
+                return result;
+            };
 
             // Filter out comment lines starting with '#' and empty lines
             const questionsLines = questionsCsv.split('\n').filter(line => line.trim() !== '' && !line.trim().startsWith('#'));
             const answersLines = answersCsv.split('\n').filter(line => line.trim() !== '' && !line.trim().startsWith('#'));
 
             if (questionsLines.length === 0 || answersLines.length === 0) {
+                // Throw error instead of just logging
                 throw new Error("CSV data is empty or invalid (after filtering comments).");
             }
 
