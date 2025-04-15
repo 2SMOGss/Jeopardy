@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Jeopardy - Google Sheets Edition</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- URL Input & Team Setup Section -->
+    <div id="setup-section" class="bg-blue-900 p-6 rounded-lg shadow-lg mb-6 w-full max-w-2xl text-white" role="form" aria-labelledby="setup-heading">
+        <h2 id="setup-heading" class="text-2xl font-bold text-center mb-4">Game Setup</h2>
+
+        <!-- URL Inputs -->
+        <div class="mb-4">
+            <label for="questions-url" class="block text-yellow-400 text-sm font-bold mb-2">Questions CSV URL:</label>
+            <input type="url" id="questions-url" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Paste Google Sheet CSV URL for questions here" aria-required="true">
+        </div>
+        <div class="mb-6">
+            <label for="answers-url" class="block text-yellow-400 text-sm font-bold mb-2">Answers CSV URL:</label>
+            <input type="url" id="answers-url" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-4" placeholder="Paste Google Sheet CSV URL for answers here" aria-required="true">
+        </div>
+
+        <!-- Team Selection -->
+        <div class="mb-4">
+            <label class="block text-yellow-400 text-sm font-bold mb-2">Number of Teams:</label>
+            <div class="flex flex-wrap space-x-4">
+                <label class="flex items-center mr-4 mb-2">
+                    <input type="radio" name="numTeams" value="1" class="mr-1" checked>
+                    1 Team
+                </label>
+                <label class="flex items-center mr-4 mb-2">
+                    <input type="radio" name="numTeams" value="2" class="mr-1">
+                    2 Teams
+                </label>
+                <label class="flex items-center mr-4 mb-2">
+                    <input type="radio" name="numTeams" value="3" class="mr-1">
+                    3 Teams
+                </label>
+                <label class="flex items-center mr-4 mb-2">
+                    <input type="radio" name="numTeams" value="4" class="mr-1">
+                    4 Teams
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="radio" name="numTeams" value="5" class="mr-1">
+                    5 Teams
+                </label>
+            </div>
+        </div>
+
+        <!-- Team Name Inputs -->
+        <div id="team-names-inputs" class="mb-6">
+            <div id="team-1-name-input-container">
+                <label for="team-1-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 1 Name:</label>
+                <input type="text" id="team-1-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 1">
+            </div>
+            <div id="team-2-name-input-container" class="hidden">
+                <label for="team-2-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 2 Name:</label>
+                <input type="text" id="team-2-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 2">
+            </div>
+            <div id="team-3-name-input-container" class="hidden">
+                <label for="team-3-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 3 Name:</label>
+                <input type="text" id="team-3-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 3">
+            </div>
+            <div id="team-4-name-input-container" class="hidden">
+                <label for="team-4-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 4 Name:</label>
+                <input type="text" id="team-4-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 4">
+            </div>
+            <div id="team-5-name-input-container" class="hidden">
+                <label for="team-5-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 5 Name:</label>
+                <input type="text" id="team-5-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 5">
+            </div>
+        </div>
+
+        <button id="load-data-button" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded w-full transition duration-200 ease-in-out">Start Game</button>
+    </div>
+
+    <!-- Status Area -->
+    <div id="status-area" class="hidden mt-4 text-center text-yellow-300 mb-4 text-lg" role="status" aria-live="polite">Loading...</div>
+
+    <!-- Game Board -->
+    <div id="game-board" class="hidden grid grid-cols-6 gap-1 w-full max-w-4xl mx-auto mt-4" role="grid" aria-label="Jeopardy Board">
+    </div>
+
+    <!-- Main Score Display Area -->
+    <div id="main-score-area" class="hidden flex justify-around w-full max-w-4xl mt-6 space-x-4" role="region" aria-live="polite" aria-label="Team Scores">
+    </div>
+
+    <!-- Question Modal -->
+    <div id="question-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true" aria-labelledby="modal-heading" aria-hidden="true">
+        <div class="modal-content relative bg-blue-800 text-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+            <button id="close-modal-button" class="absolute top-2 right-3 text-white text-2xl font-bold" aria-label="Close Question">&times;</button>
+            <div id="modal-heading" class="sr-only">Question Details</div>
+            <div id="modal-category" class="text-lg font-bold text-yellow-400 mb-2">Category</div>
+            <div id="modal-points" class="text-sm text-gray-300 mb-4">Points: </div>
+            <div id="modal-question" class="text-2xl mb-6">Question text goes here...</div>
+            <div id="modal-answer-area" class="hidden">
+                <h4 class="text-yellow-400 font-bold mb-2">Answer:</h4>
+                <div id="modal-answer" class="text-xl mb-4">Answer text goes here...</div>
+                <div class="flex justify-center space-x-4">
+                    <button id="correct-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200 ease-in-out">Correct</button>
+                    <button id="incorrect-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition duration-200 ease-in-out">Incorrect</button>
+                </div>
+            </div>
+            <button id="show-answer-button" class="mt-4 bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded transition duration-200 ease-in-out">Show Answer</button>
+            <div id="modal-score-area" class="text-white text-xl font-bold my-4" aria-live="polite">Current Score: $<span id="modal-score">0</span></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
