@@ -381,6 +381,17 @@
         document.getElementById('correct-button').addEventListener('click', () => handleAnswer(true));
         document.getElementById('incorrect-button').addEventListener('click', () => handleAnswer(false));
 
+        // Add event listeners for dynamically created modal buttons
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'modal-play-again') {
+                closeStatsModal();
+                showPlayAgainOptions();
+            } else if (e.target.id === 'modal-new-game') {
+                closeStatsModal();
+                location.reload();
+            }
+        });
+
         // Initialize
         updateTeamInputs();
 
@@ -929,10 +940,10 @@
                     </div>
                     
                     <div class="mt-6 text-center space-x-4">
-                        <button onclick="closeStatsModal(); showPlayAgainOptions();" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                        <button id="modal-play-again" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
                             🔄 Play Again
                         </button>
-                        <button onclick="closeStatsModal(); location.reload();" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                        <button id="modal-new-game" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200">
                             🏠 New Game
                         </button>
                     </div>
@@ -943,6 +954,11 @@
         }
 
         function showPlayAgainOptions() {
+            // Show setup section again
+            setupSection.classList.remove('hidden');
+            gameBoard.classList.add('hidden');
+            mainScoreArea.classList.add('hidden');
+            
             // Show play again options
             document.getElementById('play-again-button').classList.remove('hidden');
             document.getElementById('start-over-button').classList.remove('hidden');
@@ -973,6 +989,9 @@
             // Show game board
             gameBoard.classList.remove('hidden');
             mainScoreArea.classList.remove('hidden');
+            
+            // Hide setup section
+            setupSection.classList.add('hidden');
         }
 
         function startOver() {
@@ -1027,14 +1046,14 @@
                     <p class="font-bold">Final Score: ${winnerScore} points</p>
                 </div>
                 
-                <div class="mt-6 text-center space-x-4">
-                    <button onclick="closeStatsModal(); showPlayAgainOptions();" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
-                        🔄 Play Again
-                    </button>
-                    <button onclick="closeStatsModal(); location.reload();" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200">
-                        🏠 New Game
-                    </button>
-                </div>
+                                    <div class="mt-6 text-center space-x-4">
+                        <button id="modal-play-again" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                            🔄 Play Again
+                        </button>
+                        <button id="modal-new-game" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                            🏠 New Game
+                        </button>
+                    </div>
             `;
             
             setTimeout(() => {
