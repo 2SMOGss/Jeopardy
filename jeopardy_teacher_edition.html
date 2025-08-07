@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for Excel file parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -132,6 +134,28 @@
                 <label for="answers-url" class="block text-yellow-400 text-sm font-bold mb-2">Answers CSV URL:</label>
                 <input type="url" id="answers-url" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-4" placeholder="Paste Google Sheet CSV URL for answers here">
             </div>
+            
+            <!-- Local File Upload Section -->
+            <div class="mb-6 p-4 bg-blue-700 rounded-lg">
+                <h3 class="text-lg font-bold mb-3 text-yellow-400">📁 Or Upload Local Files</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="questions-file" class="block text-yellow-400 text-sm font-bold mb-2">Questions File:</label>
+                        <input type="file" id="questions-file" accept=".csv,.xlsx,.xls,.ods" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-500 file:text-blue-900 hover:file:bg-yellow-600">
+                        <p class="text-xs text-gray-300 mt-1">Supports: CSV, Excel (.xlsx, .xls), OpenDocument (.ods)</p>
+                    </div>
+                    <div>
+                        <label for="answers-file" class="block text-yellow-400 text-sm font-bold mb-2">Answers File:</label>
+                        <input type="file" id="answers-file" accept=".csv,.xlsx,.xls,.ods" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-yellow-500 file:text-blue-900 hover:file:bg-yellow-600">
+                        <p class="text-xs text-gray-300 mt-1">Supports: CSV, Excel (.xlsx, .xls), OpenDocument (.ods)</p>
+                    </div>
+                </div>
+                <div class="mt-3 text-center">
+                    <button id="load-local-files" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                        📂 Load Local Files
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Team Selection -->
@@ -185,7 +209,7 @@
             </div>
         </div>
 
-        <button id="load-data-button" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded w-full transition duration-200 ease-in-out">🎮 Start Game</button>
+        <button id="load-data-button" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded w-full transition duration-200 ease-in-out">🎮 Start Game (URL or Local Files)</button>
         <button id="play-again-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full mt-2 transition duration-200 ease-in-out hidden">🔄 Play Again</button>
         <button id="start-over-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded w-full mt-2 transition duration-200 ease-in-out hidden">🔄 Start Over</button>
     </div>
@@ -326,6 +350,13 @@
         // Start game
         document.getElementById('load-data-button').addEventListener('click', startGame);
 
+        // Local file upload
+        document.getElementById('load-local-files').addEventListener('click', loadLocalFiles);
+
+        // File selection feedback
+        document.getElementById('questions-file').addEventListener('change', updateFileSelectionFeedback);
+        document.getElementById('answers-file').addEventListener('change', updateFileSelectionFeedback);
+
         // Modal controls
         document.getElementById('close-modal-button').addEventListener('click', closeQuestionModal);
         document.getElementById('close-stats').addEventListener('click', closeStatsModal);
@@ -357,6 +388,138 @@
             document.getElementById('questions-url').value = questionsUrl;
             document.getElementById('answers-url').value = answersUrl;
             document.getElementById('url-inputs').classList.remove('hidden');
+        }
+
+        async function loadLocalFiles() {
+            const questionsFile = document.getElementById('questions-file').files[0];
+            const answersFile = document.getElementById('answers-file').files[0];
+            
+            if (!questionsFile || !answersFile) {
+                alert('Please select both questions and answers files');
+                return;
+            }
+            
+            statusArea.textContent = 'Loading local files...';
+            statusArea.classList.remove('hidden');
+            
+            try {
+                // Parse both files
+                const [questionsData, answersData] = await Promise.all([
+                    parseFile(questionsFile),
+                    parseFile(answersFile)
+                ]);
+                
+                // Set the parsed data
+                gameData.questions = questionsData;
+                gameData.answers = answersData;
+                gameData.categories = gameData.questions[0];
+                
+                // Debug: Log the parsed data to console
+                console.log('Parsed questions from file:', gameData.questions);
+                console.log('Parsed answers from file:', gameData.answers);
+                console.log('Categories:', gameData.categories);
+                
+                // Validate data structure
+                if (!gameData.categories || gameData.categories.length === 0) {
+                    throw new Error('No categories found in questions file. Please check your file format.');
+                }
+                
+                if (gameData.questions.length < 6) {
+                    throw new Error('Questions file should have at least 6 rows (1 header + 5 question rows).');
+                }
+                
+                if (gameData.answers.length < 6) {
+                    throw new Error('Answers file should have at least 6 rows (1 header + 5 answer rows).');
+                }
+                
+                // Setup teams
+                const numTeams = parseInt(document.querySelector('input[name="numTeams"]:checked').value);
+                gameData.teams = [];
+                gameData.scores = [];
+                
+                for (let i = 1; i <= numTeams; i++) {
+                    const teamName = document.getElementById(`team-${i}-name`).value || `Team ${i}`;
+                    gameData.teams.push(teamName);
+                    gameData.scores.push(0);
+                }
+                
+                // Initialize game stats
+                gameData.gameStats.totalQuestions = gameData.categories.length * 5;
+                gameData.gameStats.teamStats = gameData.teams.map(team => ({
+                    name: team,
+                    correct: 0,
+                    incorrect: 0,
+                    totalPoints: 0
+                }));
+                
+                // Generate game board
+                generateGameBoard();
+                generateScoreDisplay();
+                
+                // Hide setup, show game
+                setupSection.classList.add('hidden');
+                gameBoard.classList.remove('hidden');
+                mainScoreArea.classList.remove('hidden');
+                statusArea.classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Error loading local files:', error);
+                statusArea.textContent = `Error loading local files: ${error.message}. Please check your file format.`;
+            }
+        }
+
+        async function parseFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = e.target.result;
+                        let parsedData;
+                        
+                        if (file.name.toLowerCase().endsWith('.csv')) {
+                            // Parse CSV
+                            parsedData = parseCSV(data);
+                        } else {
+                            // Parse Excel/ODS files using SheetJS
+                            const workbook = XLSX.read(data, { type: 'binary' });
+                            const sheetName = workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[sheetName];
+                            parsedData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        }
+                        
+                        resolve(parsedData);
+                    } catch (error) {
+                        reject(new Error(`Failed to parse file ${file.name}: ${error.message}`));
+                    }
+                };
+                
+                reader.onerror = function() {
+                    reject(new Error(`Failed to read file ${file.name}`));
+                };
+                
+                if (file.name.toLowerCase().endsWith('.csv')) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsBinaryString(file);
+                }
+            });
+        }
+
+        function updateFileSelectionFeedback() {
+            const questionsFile = document.getElementById('questions-file').files[0];
+            const answersFile = document.getElementById('answers-file').files[0];
+            const loadLocalButton = document.getElementById('load-local-files');
+            
+            if (questionsFile && answersFile) {
+                loadLocalButton.textContent = `📂 Load Files: ${questionsFile.name} & ${answersFile.name}`;
+                loadLocalButton.classList.remove('bg-green-500', 'hover:bg-green-600');
+                loadLocalButton.classList.add('bg-blue-500', 'hover:bg-blue-600');
+            } else {
+                loadLocalButton.textContent = '📂 Load Local Files';
+                loadLocalButton.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                loadLocalButton.classList.add('bg-green-500', 'hover:bg-green-600');
+            }
         }
 
         function updateTeamInputs() {
@@ -449,9 +612,18 @@
         async function startGame() {
             const questionsUrl = document.getElementById('questions-url').value;
             const answersUrl = document.getElementById('answers-url').value;
+            const questionsFile = document.getElementById('questions-file').files[0];
+            const answersFile = document.getElementById('answers-file').files[0];
             
+            // Check if local files are selected first
+            if (questionsFile && answersFile) {
+                await loadLocalFiles();
+                return;
+            }
+            
+            // Fall back to URL inputs
             if (!questionsUrl || !answersUrl) {
-                alert('Please provide both Questions and Answers CSV URLs');
+                alert('Please provide both Questions and Answers CSV URLs or select local files');
                 return;
             }
             
