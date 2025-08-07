@@ -80,6 +80,12 @@
 </head>
 <body class="flex flex-col items-center justify-center min-h-screen p-4">
 
+    <!-- CORS Notice Banner -->
+    <div id="cors-notice" class="hidden fixed top-0 left-0 right-0 bg-yellow-500 text-blue-900 p-3 text-center font-bold z-50">
+        ⚠️ CORS Notice: For best experience, access this game via <a href="http://localhost:8000" class="underline">http://localhost:8000</a> or use the "Custom Content" option to upload files directly.
+        <button onclick="document.getElementById('cors-notice').classList.add('hidden')" class="ml-4 bg-blue-900 text-white px-2 py-1 rounded text-sm">×</button>
+    </div>
+
     <!-- Teacher Controls Panel -->
     <div id="teacher-panel" class="teacher-controls p-4 rounded-lg shadow-lg mb-4 w-full max-w-6xl text-white">
         <div class="flex flex-wrap justify-between items-center">
@@ -378,6 +384,11 @@
         // Initialize
         updateTeamInputs();
 
+        // Show CORS notice if running from local file
+        if (window.location.protocol === 'file:') {
+            document.getElementById('cors-notice').classList.remove('hidden');
+        }
+
         function loadExampleData(type) {
             let questionsUrl, answersUrl;
             
@@ -394,6 +405,12 @@
                     questionsUrl = 'sample_content/science_middle.csv';
                     answersUrl = 'sample_content/science_middle_answers.csv';
                     break;
+            }
+            
+            // Check if we're running from a local file system
+            if (window.location.protocol === 'file:') {
+                alert('⚠️ CORS Notice: When running from local files, please use the "Custom Content" option and upload the CSV files directly, or access the game through a local server (http://localhost:8000).\n\nFor now, you can:\n1. Click "Custom Content"\n2. Use the file upload buttons to select the sample CSV files\n3. Or access via: http://localhost:8000');
+                return;
             }
             
             document.getElementById('questions-url').value = questionsUrl;
