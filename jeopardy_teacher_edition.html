@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jeopardy Teacher Edition - Interactive Classroom Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #060ce9; /* Classic Jeopardy blue */
+        }
+        .teacher-controls {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .timer-display {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+        }
+        .score-highlight {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .question-cell {
+            transition: all 0.3s ease;
+        }
+        .question-cell:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .answered {
+            background-color: #2d3748 !important;
+            color: #718096 !important;
+        }
+        
+        /* Ensure game board displays correctly */
+        #game-board {
+            display: grid !important;
+            grid-template-columns: repeat(6, 1fr) !important;
+            gap: 4px !important;
+            width: 100% !important;
+            max-width: 1200px !important;
+            margin: 0 auto !important;
+        }
+        
+        .category-cell {
+            background-color: #eab308 !important;
+            color: #1e3a8a !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            padding: 16px 8px !important;
+            font-size: 14px !important;
+            border-radius: 4px !important;
+        }
+        
+        .question-cell {
+            background-color: #2563eb !important;
+            color: white !important;
+            font-weight: bold !important;
+            text-align: center !important;
+            padding: 24px 8px !important;
+            cursor: pointer !important;
+            border-radius: 4px !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .question-cell:hover {
+            background-color: #3b82f6 !important;
+            transform: scale(1.02) !important;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <!-- Teacher Controls Panel -->
+    <div id="teacher-panel" class="teacher-controls p-4 rounded-lg shadow-lg mb-4 w-full max-w-6xl text-white">
+        <div class="flex flex-wrap justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h2 class="text-xl font-bold">🎓 Teacher Controls</h2>
+                <button id="toggle-timer" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded transition duration-200">
+                    ⏱️ Timer: OFF
+                </button>
+                <button id="reset-game" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                    🔄 Reset Game
+                </button>
+                <button id="show-stats" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                    📊 Show Stats
+                </button>
+            </div>
+            <div id="timer-display" class="timer-display px-4 py-2 rounded-lg font-bold text-xl hidden">
+                ⏱️ <span id="timer-value">30</span>s
+            </div>
+        </div>
+    </div>
+
+    <!-- URL Input & Team Setup Section -->
+    <div id="setup-section" class="bg-blue-900 p-6 rounded-lg shadow-lg mb-6 w-full max-w-2xl text-white">
+        <h2 class="text-2xl font-bold text-center mb-4">🎯 Game Setup</h2>
+
+        <!-- Quick Start Options -->
+        <div class="mb-6 p-4 bg-blue-800 rounded-lg">
+            <h3 class="text-lg font-bold mb-3 text-yellow-400">🚀 Quick Start Options</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button id="load-presidents" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded transition duration-200">
+                    📚 Load Presidents Example
+                </button>
+                <button id="load-math" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded transition duration-200">
+                    ➗ Load Math Example
+                </button>
+                <button id="load-science" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded transition duration-200">
+                    🔬 Load Science Example
+                </button>
+                <button id="custom-content" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                    ✏️ Custom Content
+                </button>
+            </div>
+        </div>
+
+        <!-- URL Inputs -->
+        <div id="url-inputs" class="hidden">
+            <div class="mb-4">
+                <label for="questions-url" class="block text-yellow-400 text-sm font-bold mb-2">Questions CSV URL:</label>
+                <input type="url" id="questions-url" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Paste Google Sheet CSV URL for questions here">
+            </div>
+            <div class="mb-6">
+                <label for="answers-url" class="block text-yellow-400 text-sm font-bold mb-2">Answers CSV URL:</label>
+                <input type="url" id="answers-url" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-4" placeholder="Paste Google Sheet CSV URL for answers here">
+            </div>
+        </div>
+
+        <!-- Team Selection -->
+        <div class="mb-4">
+            <label class="block text-yellow-400 text-sm font-bold mb-2">Number of Teams:</label>
+            <div class="flex flex-wrap space-x-4">
+                <label class="flex items-center mr-4 mb-2">
+                    <input type="radio" name="numTeams" value="1" class="mr-1" checked>
+                    1 Team
+                </label>
+                <label class="flex items-center mr-4 mb-2">
+                    <input type="radio" name="numTeams" value="2" class="mr-1">
+                    2 Teams
+                </label>
+                <label class="flex items-center mr-4 mb-2">
+                    <input type="radio" name="numTeams" value="3" class="mr-1">
+                    3 Teams
+                </label>
+                <label class="flex items-center mr-4 mb-2">
+                    <input type="radio" name="numTeams" value="4" class="mr-1">
+                    4 Teams
+                </label>
+                <label class="flex items-center mb-2">
+                    <input type="radio" name="numTeams" value="5" class="mr-1">
+                    5 Teams
+                </label>
+            </div>
+        </div>
+
+        <!-- Team Name Inputs -->
+        <div id="team-names-inputs" class="mb-6">
+            <div id="team-1-name-input-container">
+                <label for="team-1-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 1 Name:</label>
+                <input type="text" id="team-1-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 1">
+            </div>
+            <div id="team-2-name-input-container" class="hidden">
+                <label for="team-2-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 2 Name:</label>
+                <input type="text" id="team-2-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 2">
+            </div>
+            <div id="team-3-name-input-container" class="hidden">
+                <label for="team-3-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 3 Name:</label>
+                <input type="text" id="team-3-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 3">
+            </div>
+            <div id="team-4-name-input-container" class="hidden">
+                <label for="team-4-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 4 Name:</label>
+                <input type="text" id="team-4-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 4">
+            </div>
+            <div id="team-5-name-input-container" class="hidden">
+                <label for="team-5-name" class="block text-yellow-400 text-sm font-bold mb-1">Team 5 Name:</label>
+                <input type="text" id="team-5-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 bg-white leading-tight focus:outline-none mb-2" placeholder="Team 5">
+            </div>
+        </div>
+
+        <button id="load-data-button" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded w-full transition duration-200 ease-in-out">🎮 Start Game</button>
+        <button id="play-again-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full mt-2 transition duration-200 ease-in-out hidden">🔄 Play Again</button>
+        <button id="start-over-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded w-full mt-2 transition duration-200 ease-in-out hidden">🔄 Start Over</button>
+    </div>
+
+    <!-- Status Area -->
+    <div id="status-area" class="hidden mt-4 text-center text-yellow-300 mb-4 text-lg">Loading...</div>
+
+    <!-- Game Board -->
+    <div id="game-board" class="hidden grid grid-cols-6 gap-1 w-full max-w-4xl mx-auto mt-4">
+        <!-- Categories and cells will be generated here by JavaScript -->
+    </div>
+
+    <!-- Main Score Display Area -->
+    <div id="main-score-area" class="hidden flex justify-around w-full max-w-4xl mt-6 space-x-4">
+        <!-- Team scores will be generated here by JavaScript -->
+    </div>
+
+    <!-- Question Modal -->
+    <div id="question-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="modal-content relative bg-blue-800 text-white p-8 rounded-lg shadow-xl max-w-lg w-full">
+            <button id="close-modal-button" class="absolute top-2 right-3 text-white text-2xl font-bold">&times;</button>
+            <div id="modal-category" class="text-lg font-bold text-yellow-400 mb-2">Category</div>
+            <div id="modal-points" class="text-sm text-gray-300 mb-4">Points: </div>
+            <div id="modal-question" class="text-lg mb-6">Question</div>
+            <div id="modal-answer" class="text-lg mb-6 hidden">Answer</div>
+            <div class="flex justify-between">
+                <button id="show-answer-button" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded transition duration-200">Show Answer</button>
+                <div class="flex space-x-2">
+                    <button id="correct-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200 hidden">✅ Correct</button>
+                    <button id="incorrect-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition duration-200 hidden">❌ Incorrect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div class="bg-blue-800 text-white p-8 rounded-lg shadow-xl max-w-2xl w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold">📊 Game Statistics</h3>
+                <button id="close-stats" class="text-white text-2xl font-bold">&times;</button>
+            </div>
+            <div id="stats-content" class="space-y-4">
+                <!-- Stats will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add error handling
+            window.addEventListener('error', function(e) {
+                console.log('Error caught:', e.error);
+            });
+            // Game state variables
+            let gameData = {
+            questions: [],
+            answers: [],
+            categories: [],
+            currentTeam: 0,
+            teams: [],
+            scores: [],
+            answeredQuestions: new Set(),
+            timer: null,
+            timerActive: false,
+            timerDuration: 30,
+            gameStats: {
+                totalQuestions: 0,
+                answeredQuestions: 0,
+                correctAnswers: 0,
+                incorrectAnswers: 0,
+                teamStats: []
+            }
+        };
+
+        // DOM elements
+        const setupSection = document.getElementById('setup-section');
+        const gameBoard = document.getElementById('game-board');
+        const mainScoreArea = document.getElementById('main-score-area');
+        const statusArea = document.getElementById('status-area');
+        const questionModal = document.getElementById('question-modal');
+        const statsModal = document.getElementById('stats-modal');
+
+        // Quick start buttons
+        const loadPresidentsBtn = document.getElementById('load-presidents');
+        const loadMathBtn = document.getElementById('load-math');
+        const loadScienceBtn = document.getElementById('load-science');
+        const customContentBtn = document.getElementById('custom-content');
+
+        if (loadPresidentsBtn) {
+            loadPresidentsBtn.addEventListener('click', () => {
+                loadExampleData('presidents');
+            });
+        }
+
+        if (loadMathBtn) {
+            loadMathBtn.addEventListener('click', () => {
+                loadExampleData('math');
+            });
+        }
+
+        if (loadScienceBtn) {
+            loadScienceBtn.addEventListener('click', () => {
+                loadExampleData('science');
+            });
+        }
+
+        if (customContentBtn) {
+            customContentBtn.addEventListener('click', () => {
+                const urlInputs = document.getElementById('url-inputs');
+                if (urlInputs) {
+                    urlInputs.classList.remove('hidden');
+                }
+            });
+        }
+
+        // Teacher controls
+        const toggleTimerBtn = document.getElementById('toggle-timer');
+        const resetGameBtn = document.getElementById('reset-game');
+        const showStatsBtn = document.getElementById('show-stats');
+
+        if (toggleTimerBtn) {
+            toggleTimerBtn.addEventListener('click', toggleTimer);
+        }
+        if (resetGameBtn) {
+            resetGameBtn.addEventListener('click', resetGame);
+        }
+        if (showStatsBtn) {
+            showStatsBtn.addEventListener('click', showStats);
+        }
+
+        // Team selection
+        document.querySelectorAll('input[name="numTeams"]').forEach(radio => {
+            radio.addEventListener('change', updateTeamInputs);
+        });
+
+        // Start game
+        document.getElementById('load-data-button').addEventListener('click', startGame);
+
+        // Modal controls
+        document.getElementById('close-modal-button').addEventListener('click', closeQuestionModal);
+        document.getElementById('close-stats').addEventListener('click', closeStatsModal);
+        document.getElementById('show-answer-button').addEventListener('click', showAnswer);
+        document.getElementById('correct-button').addEventListener('click', () => handleAnswer(true));
+        document.getElementById('incorrect-button').addEventListener('click', () => handleAnswer(false));
+
+        // Initialize
+        updateTeamInputs();
+
+        function loadExampleData(type) {
+            let questionsUrl, answersUrl;
+            
+            switch(type) {
+                case 'presidents':
+                    questionsUrl = 'questions_example.csv';
+                    answersUrl = 'answers_example.csv';
+                    break;
+                case 'math':
+                    questionsUrl = 'sample_content/math_elementary.csv';
+                    answersUrl = 'sample_content/math_elementary_answers.csv';
+                    break;
+                case 'science':
+                    questionsUrl = 'sample_content/science_middle.csv';
+                    answersUrl = 'sample_content/science_middle_answers.csv';
+                    break;
+            }
+            
+            document.getElementById('questions-url').value = questionsUrl;
+            document.getElementById('answers-url').value = answersUrl;
+            document.getElementById('url-inputs').classList.remove('hidden');
+        }
+
+        function updateTeamInputs() {
+            const numTeams = parseInt(document.querySelector('input[name="numTeams"]:checked').value);
+            
+            // Hide all team inputs
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`team-${i}-name-input-container`).classList.add('hidden');
+            }
+            
+            // Show only the needed team inputs
+            for (let i = 1; i <= numTeams; i++) {
+                document.getElementById(`team-${i}-name-input-container`).classList.remove('hidden');
+            }
+        }
+
+        function toggleTimer() {
+            const timerButton = document.getElementById('toggle-timer');
+            const timerDisplay = document.getElementById('timer-display');
+            
+            if (gameData.timerActive) {
+                gameData.timerActive = false;
+                timerButton.textContent = '⏱️ Timer: OFF';
+                timerDisplay.classList.add('hidden');
+                if (gameData.timer) {
+                    clearInterval(gameData.timer);
+                }
+            } else {
+                gameData.timerActive = true;
+                timerButton.textContent = '⏱️ Timer: ON';
+                timerDisplay.classList.remove('hidden');
+            }
+        }
+
+        function startTimer() {
+            if (!gameData.timerActive) return;
+            
+            let timeLeft = gameData.timerDuration;
+            document.getElementById('timer-value').textContent = timeLeft;
+            
+            gameData.timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-value').textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(gameData.timer);
+                    handleAnswer(false); // Auto-fail when time runs out
+                }
+            }, 1000);
+        }
+
+        function resetGame() {
+            if (confirm('Are you sure you want to reset the game? All progress will be lost.')) {
+                location.reload();
+            }
+        }
+
+        function showStats() {
+            const statsContent = document.getElementById('stats-content');
+            const totalQuestions = gameData.categories.length * 5;
+            const answeredCount = gameData.answeredQuestions.size;
+            const correctCount = gameData.gameStats.correctAnswers;
+            const incorrectCount = gameData.gameStats.incorrectAnswers;
+            
+            statsContent.innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-blue-700 p-4 rounded">
+                        <h4 class="font-bold">📊 Overall Progress</h4>
+                        <p>Questions Answered: ${answeredCount}/${totalQuestions}</p>
+                        <p>Correct Answers: ${correctCount}</p>
+                        <p>Incorrect Answers: ${incorrectCount}</p>
+                        <p>Accuracy: ${answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0}%</p>
+                    </div>
+                    <div class="bg-blue-700 p-4 rounded">
+                        <h4 class="font-bold">🏆 Team Scores</h4>
+                        ${gameData.teams.map((team, index) => `
+                            <p>${team}: ${gameData.scores[index]} points</p>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            statsModal.classList.remove('hidden');
+        }
+
+        function closeStatsModal() {
+            statsModal.classList.add('hidden');
+        }
+
+        async function startGame() {
+            const questionsUrl = document.getElementById('questions-url').value;
+            const answersUrl = document.getElementById('answers-url').value;
+            
+            if (!questionsUrl || !answersUrl) {
+                alert('Please provide both Questions and Answers CSV URLs');
+                return;
+            }
+            
+            statusArea.textContent = 'Loading game data...';
+            statusArea.classList.remove('hidden');
+            
+            try {
+                // Load questions and answers
+                const [questionsResponse, answersResponse] = await Promise.all([
+                    fetch(questionsUrl),
+                    fetch(answersUrl)
+                ]);
+                
+                const questionsText = await questionsResponse.text();
+                const answersText = await answersResponse.text();
+                
+                // Parse CSV data
+                gameData.questions = parseCSV(questionsText);
+                gameData.answers = parseCSV(answersText);
+                gameData.categories = gameData.questions[0];
+                
+                // Debug: Log the parsed data to console
+                console.log('Parsed questions:', gameData.questions);
+                console.log('Parsed answers:', gameData.answers);
+                console.log('Categories:', gameData.categories);
+                
+                // Validate data structure
+                if (!gameData.categories || gameData.categories.length === 0) {
+                    throw new Error('No categories found in questions CSV. Please check your CSV format.');
+                }
+                
+                if (gameData.questions.length < 6) {
+                    throw new Error('Questions CSV should have at least 6 rows (1 header + 5 question rows).');
+                }
+                
+                if (gameData.answers.length < 6) {
+                    throw new Error('Answers CSV should have at least 6 rows (1 header + 5 answer rows).');
+                }
+                
+                // Setup teams
+                const numTeams = parseInt(document.querySelector('input[name="numTeams"]:checked').value);
+                gameData.teams = [];
+                gameData.scores = [];
+                
+                for (let i = 1; i <= numTeams; i++) {
+                    const teamName = document.getElementById(`team-${i}-name`).value || `Team ${i}`;
+                    gameData.teams.push(teamName);
+                    gameData.scores.push(0);
+                }
+                
+                // Initialize game stats
+                gameData.gameStats.totalQuestions = gameData.categories.length * 5;
+                gameData.gameStats.teamStats = gameData.teams.map(team => ({
+                    name: team,
+                    correct: 0,
+                    incorrect: 0,
+                    totalPoints: 0
+                }));
+                
+                // Generate game board
+                generateGameBoard();
+                generateScoreDisplay();
+                
+                // Hide setup, show game
+                setupSection.classList.add('hidden');
+                gameBoard.classList.remove('hidden');
+                mainScoreArea.classList.remove('hidden');
+                statusArea.classList.add('hidden');
+                
+            } catch (error) {
+                console.error('Error loading game data:', error);
+                statusArea.textContent = `Error loading game data: ${error.message}. Please check your URLs and CSV format.`;
+            }
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            return lines.map(line => {
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim());
+                return values;
+            });
+        }
+
+        function generateGameBoard() {
+            gameBoard.innerHTML = '';
+            
+            console.log('Generating game board with categories:', gameData.categories);
+            console.log('Number of categories:', gameData.categories.length);
+            
+            // Add category row (first 6 cells)
+            gameData.categories.forEach((category, index) => {
+                console.log(`Creating category ${index}: "${category}"`);
+                const categoryCell = document.createElement('div');
+                categoryCell.className = 'category-cell';
+                categoryCell.textContent = category;
+                gameBoard.appendChild(categoryCell);
+            });
+            
+            // Add question rows (30 cells total)
+            const pointValues = [200, 400, 600, 800, 1000];
+            
+            console.log('Creating question rows with point values:', pointValues);
+            
+            for (let row = 0; row < 5; row++) {
+                console.log(`Creating row ${row} with ${gameData.categories.length} columns`);
+                
+                gameData.categories.forEach((category, col) => {
+                    const questionCell = document.createElement('div');
+                    questionCell.className = 'question-cell';
+                    questionCell.textContent = `$${pointValues[row]}`;
+                    questionCell.dataset.row = row;
+                    questionCell.dataset.col = col;
+                    questionCell.addEventListener('click', () => showQuestion(row, col));
+                    gameBoard.appendChild(questionCell);
+                });
+            }
+        }
+
+        function generateScoreDisplay() {
+            mainScoreArea.innerHTML = '';
+            
+            gameData.teams.forEach((team, index) => {
+                const scoreCard = document.createElement('div');
+                scoreCard.className = `bg-blue-800 text-white p-4 rounded-lg text-center ${index === gameData.currentTeam ? 'score-highlight' : ''}`;
+                scoreCard.innerHTML = `
+                    <div class="font-bold text-lg">${team}</div>
+                    <div class="text-2xl font-bold text-yellow-400">${gameData.scores[index]}</div>
+                    ${index === gameData.currentTeam ? '<div class="text-sm text-yellow-300">🎯 Current Turn</div>' : ''}
+                `;
+                mainScoreArea.appendChild(scoreCard);
+            });
+        }
+
+        function showQuestion(row, col) {
+            const questionKey = `${row}-${col}`;
+            if (gameData.answeredQuestions.has(questionKey)) {
+                return; // Question already answered
+            }
+            
+            const question = gameData.questions[row + 1][col];
+            const answer = gameData.answers[row + 1][col];
+            const category = gameData.categories[col];
+            const points = [200, 400, 600, 800, 1000][row];
+            
+            document.getElementById('modal-category').textContent = category;
+            document.getElementById('modal-points').textContent = `Points: $${points}`;
+            document.getElementById('modal-question').textContent = question;
+            document.getElementById('modal-answer').textContent = answer;
+            
+            // Reset modal state
+            document.getElementById('modal-answer').classList.add('hidden');
+            document.getElementById('show-answer-button').classList.remove('hidden');
+            document.getElementById('correct-button').classList.add('hidden');
+            document.getElementById('incorrect-button').classList.add('hidden');
+            
+            questionModal.classList.remove('hidden');
+            
+            // Mark question as being answered
+            gameData.answeredQuestions.add(questionKey);
+            
+            // Update board to show question is taken
+            const questionCell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            questionCell.classList.add('answered');
+            questionCell.textContent = '';
+            
+            // Start timer if enabled
+            if (gameData.timerActive) {
+                startTimer();
+            }
+        }
+
+        function showAnswer() {
+            document.getElementById('modal-answer').classList.remove('hidden');
+            document.getElementById('show-answer-button').classList.add('hidden');
+            document.getElementById('correct-button').classList.remove('hidden');
+            document.getElementById('incorrect-button').classList.remove('hidden');
+        }
+
+        function handleAnswer(isCorrect) {
+            // Stop timer
+            if (gameData.timer) {
+                clearInterval(gameData.timer);
+            }
+            
+            const currentPoints = parseInt(document.getElementById('modal-points').textContent.match(/\$(\d+)/)[1]);
+            
+            if (isCorrect) {
+                gameData.scores[gameData.currentTeam] += currentPoints;
+                gameData.gameStats.correctAnswers++;
+                gameData.gameStats.teamStats[gameData.currentTeam].correct++;
+                gameData.gameStats.teamStats[gameData.currentTeam].totalPoints += currentPoints;
+            } else {
+                gameData.scores[gameData.currentTeam] -= currentPoints;
+                gameData.gameStats.incorrectAnswers++;
+                gameData.gameStats.teamStats[gameData.currentTeam].incorrect++;
+                gameData.gameStats.teamStats[gameData.currentTeam].totalPoints -= currentPoints;
+            }
+            
+            // Move to next team
+            gameData.currentTeam = (gameData.currentTeam + 1) % gameData.teams.length;
+            
+            // Update display
+            generateScoreDisplay();
+            closeQuestionModal();
+            
+            // Check if game is over
+            if (gameData.answeredQuestions.size === gameData.categories.length * 5) {
+                endGame();
+            }
+        }
+
+        function closeQuestionModal() {
+            questionModal.classList.add('hidden');
+        }
+
+        function endGame() {
+            const winner = gameData.scores.indexOf(Math.max(...gameData.scores));
+            const winnerName = gameData.teams[winner];
+            const winnerScore = gameData.scores[winner];
+            
+            setTimeout(() => {
+                alert(`🎉 Game Over! 🎉\n\n🏆 Winner: ${winnerName} with ${winnerScore} points!\n\nFinal Scores:\n${gameData.teams.map((team, index) => `${team}: ${gameData.scores[index]} points`).join('\n')}`);
+                
+                // Show play again options
+                document.getElementById('play-again-button').classList.remove('hidden');
+                document.getElementById('start-over-button').classList.remove('hidden');
+            }, 500);
+        }
+        }); // Close DOMContentLoaded function
+    </script>
+</body>
+</html>

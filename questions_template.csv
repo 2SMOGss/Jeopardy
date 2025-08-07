@@ -1,15 +1,6 @@
-# INSTRUCTIONS: Replace the sample data below with your own categories and questions.
-# - The first row MUST contain your category names (e.g., Category 1, Category 2, ...).
-# - Each subsequent row represents a point value tier (100, 200, 300, 400, 500).
-# - Fill in the question for each category under the corresponding point value.
-# - Ensure the number of questions in each row matches the number of categories in the first row.
-# - Make sure this file (questions) and the answers file have the exact same structure (number of categories and number of question rows).
-# - Lines starting with '#' will be ignored by the game.
-#
-# EXAMPLE DATA BELOW - REPLACE THIS:
-First Ladies,Before They Were President,Presidential Quotes,Assassinations,Vice Presidents,Scandals
-This First Lady was known for her 'Just Say No' campaign against drugs.,This president was a Hollywood actor before entering politics.,He famously said, 'The only thing we have to fear is fear itself.',This president was assassinated in Ford's Theatre.,He served as Vice President under Abraham Lincoln.,This scandal involved a break-in at the Democratic National Committee headquarters.
-She initiated the White House Easter Egg Roll tradition.,This president served as a general in the U.S. Army during World War II.,He warned against the 'military-industrial complex' in his farewell address.,This president was assassinated by Charles Guiteau after being denied a government job.,He was the only Vice President to become President without being elected to either office.,This scandal involved President Clinton's relationship with a White House intern.
-This First Lady advocated for literacy and established the National Book Festival.,This president was the director of the Central Intelligence Agency (CIA).,His campaign slogan was 'I Like Ike'.,This president was assassinated in Buffalo, New York, while attending the Pan-American Exposition.,He served as Vice President under Franklin D. Roosevelt for his first three terms.,This scandal involved the Reagan administration secretly selling arms to Iran.
-She was the first First Lady to hold a postgraduate degree.,This president was a peanut farmer from Georgia.,He said, 'Ask not what your country can do for you – ask what you can do for your country.',This president survived an assassination attempt by John Hinckley Jr. shortly after taking office.,He became Vice President after Spiro Agnew resigned.,This scandal involved Harding administration officials leasing Navy oil reserves.
-This First Lady was instrumental in the creation of the National Park Service.,This president was the Governor of Arkansas before his presidency.,He declared, 'Mr. Gorbachev, tear down this wall!',This president was assassinated in Dallas, Texas, while riding in a motorcade.,He served as Vice President under George H.W. Bush and later ran for president himself.,This scandal involved alleged corruption in Ulysses S. Grant's administration related to whiskey taxes.
+Category 1,Category 2,Category 3,Category 4,Category 5,Category 6
+Question 1,Question 2,Question 3,Question 4,Question 5,Question 6
+Question 7,Question 8,Question 9,Question 10,Question 11,Question 12
+Question 13,Question 14,Question 15,Question 16,Question 17,Question 18
+Question 19,Question 20,Question 21,Question 22,Question 23,Question 24
+Question 25,Question 26,Question 27,Question 28,Question 29,Question 30

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web Jeopardy - Google Sheets Edition</title>
-    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
@@ -83,6 +83,8 @@
         </div>
 
         <button id="load-data-button" class="bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-2 px-4 rounded w-full transition duration-200 ease-in-out">Start Game</button>
+        <button id="play-again-button" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded w-full mt-2 transition duration-200 ease-in-out hidden">Play Again</button>
+        <button id="start-over-button" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded w-full mt-2 transition duration-200 ease-in-out hidden">Start Over</button>
     </div>
 
     <!-- Status Area -->
