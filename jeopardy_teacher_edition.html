@@ -94,6 +94,9 @@
                 <button id="show-stats" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
                     📊 Show Stats
                 </button>
+                <button id="end-game" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                    🏁 End Game
+                </button>
             </div>
             <div id="timer-display" class="timer-display px-4 py-2 rounded-lg font-bold text-xl hidden">
                 ⏱️ <span id="timer-value">30</span>s
@@ -331,6 +334,7 @@
         const toggleTimerBtn = document.getElementById('toggle-timer');
         const resetGameBtn = document.getElementById('reset-game');
         const showStatsBtn = document.getElementById('show-stats');
+        const endGameBtn = document.getElementById('end-game');
 
         if (toggleTimerBtn) {
             toggleTimerBtn.addEventListener('click', toggleTimer);
@@ -341,6 +345,9 @@
         if (showStatsBtn) {
             showStatsBtn.addEventListener('click', showStats);
         }
+        if (endGameBtn) {
+            endGameBtn.addEventListener('click', endGameEarly);
+        }
 
         // Team selection
         document.querySelectorAll('input[name="numTeams"]').forEach(radio => {
@@ -349,6 +356,10 @@
 
         // Start game
         document.getElementById('load-data-button').addEventListener('click', startGame);
+
+        // Play again and start over buttons
+        document.getElementById('play-again-button').addEventListener('click', playAgain);
+        document.getElementById('start-over-button').addEventListener('click', startOver);
 
         // Local file upload
         document.getElementById('load-local-files').addEventListener('click', loadLocalFiles);
@@ -850,6 +861,108 @@
             }
         }
 
+        function endGameEarly() {
+            if (confirm('Are you sure you want to end the game early? This will show the current results.')) {
+                // Stop timer if running
+                if (gameData.timer) {
+                    clearInterval(gameData.timer);
+                }
+                
+                const totalQuestions = gameData.categories.length * 5;
+                const answeredCount = gameData.answeredQuestions.size;
+                const correctCount = gameData.gameStats.correctAnswers;
+                const incorrectCount = gameData.gameStats.incorrectAnswers;
+                
+                // Find winner
+                const winner = gameData.scores.indexOf(Math.max(...gameData.scores));
+                const winnerName = gameData.teams[winner];
+                const winnerScore = gameData.scores[winner];
+                
+                // Create comprehensive results display
+                const statsContent = document.getElementById('stats-content');
+                statsContent.innerHTML = `
+                    <div class="text-center mb-6">
+                        <h3 class="text-2xl font-bold text-yellow-400 mb-2">🏁 Game Ended Early</h3>
+                        <p class="text-gray-300">Final Results</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-blue-700 p-4 rounded">
+                            <h4 class="font-bold text-yellow-400 mb-3">📊 Game Progress</h4>
+                            <p class="mb-2">Questions Answered: <span class="font-bold">${answeredCount}/${totalQuestions}</span></p>
+                            <p class="mb-2">Correct Answers: <span class="font-bold text-green-400">${correctCount}</span></p>
+                            <p class="mb-2">Incorrect Answers: <span class="font-bold text-red-400">${incorrectCount}</span></p>
+                            <p class="mb-2">Accuracy: <span class="font-bold">${answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0}%</span></p>
+                        </div>
+                        
+                        <div class="bg-blue-700 p-4 rounded">
+                            <h4 class="font-bold text-yellow-400 mb-3">🏆 Final Team Scores</h4>
+                            ${gameData.teams.map((team, index) => {
+                                const isWinner = index === winner;
+                                const scoreClass = isWinner ? 'text-yellow-400 font-bold' : 'text-white';
+                                const winnerIcon = isWinner ? '👑 ' : '';
+                                return `<p class="mb-2 ${scoreClass}">${winnerIcon}${team}: ${gameData.scores[index]} points</p>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="text-center bg-yellow-500 text-blue-900 p-4 rounded-lg">
+                        <h4 class="font-bold text-lg">🎉 Winner: ${winnerName}</h4>
+                        <p class="font-bold">Final Score: ${winnerScore} points</p>
+                    </div>
+                    
+                    <div class="mt-6 text-center space-x-4">
+                        <button onclick="closeStatsModal(); showPlayAgainOptions();" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                            🔄 Play Again
+                        </button>
+                        <button onclick="closeStatsModal(); location.reload();" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                            🏠 New Game
+                        </button>
+                    </div>
+                `;
+                
+                statsModal.classList.remove('hidden');
+            }
+        }
+
+        function showPlayAgainOptions() {
+            // Show play again options
+            document.getElementById('play-again-button').classList.remove('hidden');
+            document.getElementById('start-over-button').classList.remove('hidden');
+        }
+
+        function playAgain() {
+            // Reset game state but keep the same content
+            gameData.currentTeam = 0;
+            gameData.scores = gameData.scores.map(() => 0);
+            gameData.answeredQuestions = new Set();
+            gameData.gameStats.correctAnswers = 0;
+            gameData.gameStats.incorrectAnswers = 0;
+            gameData.gameStats.teamStats = gameData.teams.map(team => ({
+                name: team,
+                correct: 0,
+                incorrect: 0,
+                totalPoints: 0
+            }));
+            
+            // Regenerate game board and score display
+            generateGameBoard();
+            generateScoreDisplay();
+            
+            // Hide play again buttons
+            document.getElementById('play-again-button').classList.add('hidden');
+            document.getElementById('start-over-button').classList.add('hidden');
+            
+            // Show game board
+            gameBoard.classList.remove('hidden');
+            mainScoreArea.classList.remove('hidden');
+        }
+
+        function startOver() {
+            // Reload the page to start completely fresh
+            location.reload();
+        }
+
         function closeQuestionModal() {
             questionModal.classList.add('hidden');
         }
@@ -859,9 +972,56 @@
             const winnerName = gameData.teams[winner];
             const winnerScore = gameData.scores[winner];
             
-            setTimeout(() => {
-                alert(`🎉 Game Over! 🎉\n\n🏆 Winner: ${winnerName} with ${winnerScore} points!\n\nFinal Scores:\n${gameData.teams.map((team, index) => `${team}: ${gameData.scores[index]} points`).join('\n')}`);
+            const totalQuestions = gameData.categories.length * 5;
+            const answeredCount = gameData.answeredQuestions.size;
+            const correctCount = gameData.gameStats.correctAnswers;
+            const incorrectCount = gameData.gameStats.incorrectAnswers;
+            
+            // Create comprehensive results display
+            const statsContent = document.getElementById('stats-content');
+            statsContent.innerHTML = `
+                <div class="text-center mb-6">
+                    <h3 class="text-2xl font-bold text-yellow-400 mb-2">🎉 Game Complete!</h3>
+                    <p class="text-gray-300">Final Results</p>
+                </div>
                 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-blue-700 p-4 rounded">
+                        <h4 class="font-bold text-yellow-400 mb-3">📊 Game Progress</h4>
+                        <p class="mb-2">Questions Answered: <span class="font-bold">${answeredCount}/${totalQuestions}</span></p>
+                        <p class="mb-2">Correct Answers: <span class="font-bold text-green-400">${correctCount}</span></p>
+                        <p class="mb-2">Incorrect Answers: <span class="font-bold text-red-400">${incorrectCount}</span></p>
+                        <p class="mb-2">Accuracy: <span class="font-bold">${answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : 0}%</span></p>
+                    </div>
+                    
+                    <div class="bg-blue-700 p-4 rounded">
+                        <h4 class="font-bold text-yellow-400 mb-3">🏆 Final Team Scores</h4>
+                        ${gameData.teams.map((team, index) => {
+                            const isWinner = index === winner;
+                            const scoreClass = isWinner ? 'text-yellow-400 font-bold' : 'text-white';
+                            const winnerIcon = isWinner ? '👑 ' : '';
+                            return `<p class="mb-2 ${scoreClass}">${winnerIcon}${team}: ${gameData.scores[index]} points</p>`;
+                        }).join('')}
+                    </div>
+                </div>
+                
+                <div class="text-center bg-yellow-500 text-blue-900 p-4 rounded-lg">
+                    <h4 class="font-bold text-lg">🎉 Winner: ${winnerName}</h4>
+                    <p class="font-bold">Final Score: ${winnerScore} points</p>
+                </div>
+                
+                <div class="mt-6 text-center space-x-4">
+                    <button onclick="closeStatsModal(); showPlayAgainOptions();" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                        🔄 Play Again
+                    </button>
+                    <button onclick="closeStatsModal(); location.reload();" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200">
+                        🏠 New Game
+                    </button>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                statsModal.classList.remove('hidden');
                 // Show play again options
                 document.getElementById('play-again-button').classList.remove('hidden');
                 document.getElementById('start-over-button').classList.remove('hidden');
